@@ -14,7 +14,10 @@ RUN yarn install --frozen-lockfile --network-timeout 600000
 # 2. Rebuild the source code only when needed
 FROM base AS builder
 ARG NOTION_PAGE_ID
+ARG NEXT_PUBLIC_REVALIDATE_SECOND=60
+ENV NEXT_PUBLIC_REVALIDATE_SECOND=${NEXT_PUBLIC_REVALIDATE_SECOND}
 ENV NEXT_BUILD_STANDALONE=true
+ENV NODE_OPTIONS=--max-old-space-size=2048
 
 WORKDIR /app
 
