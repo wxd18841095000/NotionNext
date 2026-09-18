@@ -11,6 +11,7 @@ import Logo from './Logo'
 import { MenuListTop } from './MenuListTop'
 import SearchButton from './SearchButton'
 import SearchDrawer from './SearchDrawer'
+import LanguageSwitch from './LanguageSwitch'
 import SideBar from './SideBar'
 import SideBarDrawer from './SideBarDrawer'
 import TagGroups from './TagGroups'
@@ -164,6 +165,7 @@ const Header = props => {
               {' '}
               <MenuListTop {...props} />
             </div>
+            <LanguageSwitch />
             <div
               onClick={toggleMenuOpen}
               className='w-8 justify-center items-center h-8 cursor-pointer flex lg:hidden'>

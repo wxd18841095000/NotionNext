@@ -12,6 +12,8 @@ import { useRouter } from 'next/router'
 import { createContext, useContext, useEffect, useRef } from 'react'
 import ArticleAdjacent from './components/ArticleAdjacent'
 import ArticleCopyright from './components/ArticleCopyright'
+import ArticleDownloadButton from './components/ArticleDownloadButton'
+import ArticlePrintStyle from './components/ArticlePrintStyle'
 import { ArticleLock } from './components/ArticleLock'
 import ArticleRecommend from './components/ArticleRecommend'
 import BlogPostArchive from './components/BlogPostArchive'
@@ -32,6 +34,7 @@ import TagItemMini from './components/TagItemMini'
 import TocDrawer from './components/TocDrawer'
 import TocDrawerButton from './components/TocDrawerButton'
 import ArticleSwitchPlaceholder from './components/ArticleSwitchPlaceholder'
+import TraditionalChineseBridge from './components/TraditionalChineseBridge'
 import CONFIG from './config'
 import { Style } from './style'
 
@@ -100,6 +103,8 @@ const LayoutBase = props => {
         id='theme-hexo'
         className={`${siteConfig('FONT_STYLE')} dark:bg-black scroll-smooth`}>
         <Style />
+        <ArticlePrintStyle />
+        <TraditionalChineseBridge />
 
         {/* 顶部导航 */}
         <Header {...props} />
@@ -305,6 +310,7 @@ const LayoutSlug = props => {
             <article
               id='article-wrapper'
               className='subpixel-antialiased overflow-y-hidden'>
+              <ArticleDownloadButton post={post} />
               {/* Notion文章主体 */}
               <section className='px-5 justify-center mx-auto max-w-2xl lg:max-w-full'>
                 {post && <NotionPage post={post} />}

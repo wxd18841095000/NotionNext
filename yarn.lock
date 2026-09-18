@@ -7059,6 +7059,11 @@ open@^8.4.0:
     is-docker "^2.1.1"
     is-wsl "^2.2.0"
 
+opencc-js@1.4.2:
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/opencc-js/-/opencc-js-1.4.2.tgz#37d29f577df1b6a582a89831523c96ffac089232"
+  integrity sha512-EdcspgdROiCCZDM+jZR6Pa670xW+EW2QhctPBQ8gRjg6lrx4IHEl+2s+kt5izk/TkxVRgdWuFgaGkaEdIUfdaw==
+
 opener@^1.5.2:
   version "1.5.2"
   resolved "https://registry.npmmirror.com/opener/-/opener-1.5.2.tgz"
