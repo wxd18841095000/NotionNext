@@ -163,11 +163,387 @@ export default function ArticleDownloadButton({ post }) {
     )
   }
 
+  const isIOSBrowser = () => {
+    if (typeof navigator === 'undefined') return false
+
+    const ua = navigator.userAgent || ''
+
+    return (
+      /iPad|iPhone|iPod/i.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    )
+  }
+
+  const printInIsolatedIOSWindow = async () => {
+    /*
+     * iOS Safari 对超长、复杂主文档的 window.print() 容易截断尾部。
+     * 必须在用户点击事件中立即打开新窗口，避免 Safari 弹窗拦截。
+     */
+    const printWindow = window.open('', '_blank')
+
+    if (!printWindow) {
+      window.alert('无法打开打印页面，请允许浏览器弹出窗口后重试。')
+      return
+    }
+
+    const sourceArticle = document.querySelector(
+      '#article-wrapper #notion-article'
+    )
+
+    if (!sourceArticle) {
+      printWindow.close()
+      window.print()
+      return
+    }
+
+    const visibleTitle =
+      document.getElementById('article-print-title')?.textContent?.trim() ||
+      post?.title ||
+      document.title
+
+    const sourceMeta = document.getElementById('article-print-meta')
+    const sourceImages = Array.from(sourceArticle.querySelectorAll('img'))
+
+    const printDocument = printWindow.document
+
+    printDocument.open()
+    printDocument.write(
+      '<!doctype html>' +
+        '<html lang="zh-CN">' +
+        '<head>' +
+        '<meta charset="utf-8">' +
+        '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<title></title>' +
+        '</head>' +
+        '<body>' +
+        '<main id="ios-article-print-root"></main>' +
+        '</body>' +
+        '</html>'
+    )
+    printDocument.close()
+
+    printDocument.title = visibleTitle
+
+    /*
+     * 复制当前页面已经加载的 CSS。
+     * 独立窗口没有 Header / Sidebar / 页面父容器，
+     * 因此只让 Notion 正文继续获得原来的排版能力。
+     */
+    const sourceStyleNodes = Array.from(
+      document.querySelectorAll(
+        'head link[rel="stylesheet"], head style'
+      )
+    )
+
+    sourceStyleNodes.forEach(node => {
+      try {
+        printDocument.head.appendChild(
+          printDocument.importNode(node, true)
+        )
+      } catch (error) {
+        console.warn('[Article PDF] style copy failed', error)
+      }
+    })
+
+    const isolatedStyle = printDocument.createElement('style')
+
+    isolatedStyle.textContent = `
+      @page {
+        size: A4;
+        margin: 16mm 14mm 18mm;
+      }
+
+      html,
+      body {
+        width: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #fff !important;
+        color: #111 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      #ios-article-print-root {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        transform: none !important;
+        contain: none !important;
+        background: #fff !important;
+        color: #111 !important;
+      }
+
+      #ios-article-print-root .ios-print-title {
+        margin: 0 0 5mm !important;
+        padding: 0 !important;
+        color: #111 !important;
+        font-size: 24pt !important;
+        line-height: 1.35 !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        text-shadow: none !important;
+      }
+
+      #ios-article-print-root .ios-print-meta {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 2mm 4mm !important;
+        margin: 0 0 10mm !important;
+        padding: 0 0 5mm !important;
+        border-bottom: 1px solid #ddd !important;
+        color: #666 !important;
+        font-size: 9.5pt !important;
+        line-height: 1.5 !important;
+      }
+
+      #ios-article-print-root .ios-print-meta * {
+        color: #666 !important;
+        background: transparent !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+      }
+
+      #ios-article-print-root .ios-print-body,
+      #ios-article-print-root .notion,
+      #ios-article-print-root .notion-page,
+      #ios-article-print-root .notion-page-content {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+        transform: none !important;
+        contain: none !important;
+        clip: auto !important;
+      }
+
+      #ios-article-print-root .ios-print-body *,
+      #ios-article-print-root .notion-page-content * {
+        max-height: none !important;
+      }
+
+      #ios-article-print-root img {
+        max-width: 100% !important;
+        max-height: 240mm !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+
+      #ios-article-print-root figure,
+      #ios-article-print-root table,
+      #ios-article-print-root pre,
+      #ios-article-print-root blockquote {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+      }
+
+      #ios-article-print-root pre,
+      #ios-article-print-root code {
+        white-space: pre-wrap !important;
+        overflow-wrap: anywhere !important;
+      }
+
+      #ios-article-print-root table {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      #ios-article-print-root a {
+        color: #111 !important;
+        text-decoration: none !important;
+      }
+
+      #ios-article-print-root .ios-print-source {
+        margin-top: 12mm !important;
+        padding-top: 4mm !important;
+        border-top: 1px solid #ddd !important;
+        color: #777 !important;
+        font-size: 8.5pt !important;
+        line-height: 1.5 !important;
+        overflow-wrap: anywhere !important;
+      }
+
+      @media print {
+        html,
+        body,
+        #ios-article-print-root {
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          overflow: visible !important;
+        }
+      }
+    `
+
+    printDocument.head.appendChild(isolatedStyle)
+
+    const root = printDocument.getElementById(
+      'ios-article-print-root'
+    )
+
+    const title = printDocument.createElement('h1')
+    title.className = 'ios-print-title'
+    title.textContent = visibleTitle
+    root.appendChild(title)
+
+    if (sourceMeta) {
+      const meta = printDocument.importNode(sourceMeta, true)
+      meta.removeAttribute('id')
+      meta.className = 'ios-print-meta'
+      root.appendChild(meta)
+    }
+
+    const article = printDocument.importNode(sourceArticle, true)
+    article.id = 'notion-article-print'
+    article.classList.add('ios-print-body')
+
+    const clonedImages = Array.from(
+      article.querySelectorAll('img')
+    )
+
+    clonedImages.forEach((img, index) => {
+      const sourceImage = sourceImages[index]
+
+      const src =
+        sourceImage?.currentSrc ||
+        sourceImage?.src ||
+        img.currentSrc ||
+        img.src ||
+        img.dataset?.src
+
+      if (src) {
+        img.src = src
+      }
+
+      img.loading = 'eager'
+    })
+
+    root.appendChild(article)
+
+    const source = printDocument.createElement('div')
+    source.className = 'ios-print-source'
+    source.textContent = `URL: ${window.location.href}`
+    root.appendChild(source)
+
+    const waitForStyles = () => {
+      const links = Array.from(
+        printDocument.querySelectorAll('link[rel="stylesheet"]')
+      )
+
+      return Promise.all(
+        links.map(link => {
+          if (link.sheet) return Promise.resolve()
+
+          return new Promise(resolve => {
+            let settled = false
+
+            const done = () => {
+              if (settled) return
+              settled = true
+              printWindow.clearTimeout(timer)
+              resolve()
+            }
+
+            const timer = printWindow.setTimeout(done, 5000)
+
+            link.addEventListener('load', done, { once: true })
+            link.addEventListener('error', done, { once: true })
+          })
+        })
+      )
+    }
+
+    const waitForIOSImages = () => {
+      const images = Array.from(root.querySelectorAll('img'))
+
+      return Promise.all(
+        images.map(img => {
+          if (img.complete && img.naturalWidth > 0) {
+            return Promise.resolve()
+          }
+
+          return new Promise(resolve => {
+            let settled = false
+
+            const done = () => {
+              if (settled) return
+              settled = true
+              printWindow.clearTimeout(timer)
+              resolve()
+            }
+
+            const timer = printWindow.setTimeout(done, 12000)
+
+            img.addEventListener('load', done, { once: true })
+            img.addEventListener('error', done, { once: true })
+          })
+        })
+      )
+    }
+
+    try {
+      await waitForStyles()
+
+      try {
+        if (printDocument.fonts?.ready) {
+          await printDocument.fonts.ready
+        }
+      } catch (error) {
+        console.warn('[Article PDF] iOS font wait failed', error)
+      }
+
+      await waitForIOSImages()
+
+      await new Promise(resolve => {
+        printWindow.requestAnimationFrame(() => {
+          printWindow.requestAnimationFrame(resolve)
+        })
+      })
+
+      await new Promise(resolve => {
+        printWindow.setTimeout(resolve, 350)
+      })
+
+      printWindow.focus()
+      printWindow.print()
+    } catch (error) {
+      console.error('[Article PDF] isolated iOS print failed', error)
+    }
+  }
+
   const handlePrint = async () => {
     if (typeof window === 'undefined') return
 
     if (isWeChatBrowser()) {
       showWeChatPdfGuide()
+      return
+    }
+
+    if (isIOSBrowser()) {
+      await printInIsolatedIOSWindow()
       return
     }
 
