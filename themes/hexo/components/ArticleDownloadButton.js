@@ -154,13 +154,52 @@ export default function ArticleDownloadButton({ post }) {
             resolve()
           }
 
-          const timer = window.setTimeout(done, 3000)
+          const timer = window.setTimeout(done, 8000)
 
           img.addEventListener('load', done, { once: true })
           img.addEventListener('error', done, { once: true })
         })
       })
     )
+  }
+
+  const waitForPrintLayout = async root => {
+    try {
+      if (document.fonts?.ready) {
+        await document.fonts.ready
+      }
+    } catch (error) {
+      console.warn('[Article PDF] font wait failed', error)
+    }
+
+    let previousHeight = -1
+    let stableCount = 0
+
+    for (let i = 0; i < 12; i += 1) {
+      await new Promise(resolve => {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(resolve)
+        })
+      })
+
+      await new Promise(resolve => {
+        window.setTimeout(resolve, 80)
+      })
+
+      const currentHeight = root.scrollHeight
+
+      if (currentHeight === previousHeight) {
+        stableCount += 1
+      } else {
+        stableCount = 0
+      }
+
+      previousHeight = currentHeight
+
+      if (stableCount >= 2) {
+        break
+      }
+    }
   }
 
   const handlePrint = async () => {
@@ -272,11 +311,7 @@ export default function ArticleDownloadButton({ post }) {
 
     try {
       await waitForImages(printRoot)
-
-      await new Promise(resolve => {
-        window.requestAnimationFrame(() => resolve())
-      })
-
+      await waitForPrintLayout(printRoot)
       window.print()
     } catch (error) {
       console.error('[Article PDF] print failed', error)

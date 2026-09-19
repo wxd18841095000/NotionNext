@@ -109,19 +109,56 @@ export default function ArticlePrintStyle() {
           overflow: visible !important;
         }
 
-        #article-print-root img {
-          max-width: 100% !important;
+        /*
+         * iOS Safari / WKWebView long-document print safety.
+         * Remove inherited clipping / height / transform constraints while printing.
+         */
+        body.article-printing,
+        body.article-printing #theme-hexo,
+        body.article-printing #article-print-root,
+        #article-print-root .article-print-document-body,
+        #article-print-root .notion,
+        #article-print-root .notion-page,
+        #article-print-root .notion-page-content {
           height: auto !important;
-          break-inside: avoid;
-          page-break-inside: avoid;
+          min-height: 0 !important;
+          max-height: none !important;
+          overflow: visible !important;
+          overflow-x: visible !important;
+          overflow-y: visible !important;
+          transform: none !important;
+          contain: none !important;
+          clip: auto !important;
         }
 
+        #article-print-root .article-print-document-body *,
+        #article-print-root .notion-page-content * {
+          max-height: none !important;
+        }
+
+        #article-print-root img {
+          max-width: 100% !important;
+          max-height: 240mm !important;
+          width: auto !important;
+          height: auto !important;
+          object-fit: contain !important;
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+
+        /* iOS/WebKit：长内容必须允许跨页，否则可能截断文章尾部 */
         #article-print-root figure,
         #article-print-root table,
         #article-print-root pre,
         #article-print-root blockquote {
-          break-inside: avoid;
-          page-break-inside: avoid;
+          break-inside: auto !important;
+          page-break-inside: auto !important;
+        }
+
+        /* 表格整体可以分页，但尽量不要把单独一行劈开 */
+        #article-print-root tr {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
         }
 
         #article-print-root h1,
