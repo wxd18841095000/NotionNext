@@ -1,4 +1,140 @@
 export default function ArticleDownloadButton({ post }) {
+  const isWeChatBrowser = () => {
+    if (typeof navigator === 'undefined') return false
+    return /MicroMessenger/i.test(navigator.userAgent || '')
+  }
+
+  const copyCurrentUrl = async () => {
+    const url = window.location.href
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+        return true
+      }
+    } catch (error) {
+      console.warn('[Article PDF] clipboard API unavailable', error)
+    }
+
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = url
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+
+      const copied = document.execCommand('copy')
+      textarea.remove()
+
+      return copied
+    } catch (error) {
+      console.warn('[Article PDF] fallback copy failed', error)
+      return false
+    }
+  }
+
+  const showWeChatPdfGuide = () => {
+    const staleGuide = document.getElementById('wechat-pdf-guide')
+
+    if (staleGuide) {
+      staleGuide.remove()
+    }
+
+    const overlay = document.createElement('div')
+    overlay.id = 'wechat-pdf-guide'
+    overlay.setAttribute('role', 'dialog')
+    overlay.setAttribute('aria-modal', 'true')
+    overlay.setAttribute('aria-label', '微信下载 PDF 提示')
+
+    overlay.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'z-index:2147483647',
+      'background:rgba(0,0,0,.55)',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'padding:24px'
+    ].join(';')
+
+    const panel = document.createElement('div')
+
+    panel.style.cssText = [
+      'width:min(420px,100%)',
+      'background:#fff',
+      'color:#111827',
+      'border-radius:14px',
+      'padding:22px',
+      'box-shadow:0 20px 50px rgba(0,0,0,.28)',
+      'font-size:15px',
+      'line-height:1.7'
+    ].join(';')
+
+    const title = document.createElement('div')
+    title.textContent = '微信内暂不支持直接下载 PDF'
+    title.style.cssText =
+      'font-size:18px;font-weight:700;margin-bottom:12px;'
+
+    const message = document.createElement('div')
+    message.innerHTML =
+      '请点击微信右上角 <strong>···</strong><br>' +
+      '选择 <strong>“在浏览器打开”</strong><br>' +
+      '然后再次点击 <strong>“下载 PDF”</strong>。'
+
+    const buttons = document.createElement('div')
+    buttons.style.cssText =
+      'display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;'
+
+    const closeButton = document.createElement('button')
+    closeButton.type = 'button'
+    closeButton.textContent = '知道了'
+    closeButton.style.cssText =
+      'border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:8px;padding:9px 14px;cursor:pointer;'
+
+    const copyButton = document.createElement('button')
+    copyButton.type = 'button'
+    copyButton.textContent = '复制当前链接'
+    copyButton.style.cssText =
+      'border:0;background:#4f46e5;color:#fff;border-radius:8px;padding:9px 14px;cursor:pointer;'
+
+    const close = () => {
+      overlay.remove()
+    }
+
+    closeButton.addEventListener('click', close)
+
+    copyButton.addEventListener('click', async () => {
+      const copied = await copyCurrentUrl()
+
+      copyButton.textContent = copied
+        ? '已复制链接'
+        : '复制失败，请手动复制'
+
+      if (copied) {
+        window.setTimeout(close, 900)
+      }
+    })
+
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) {
+        close()
+      }
+    })
+
+    buttons.appendChild(closeButton)
+    buttons.appendChild(copyButton)
+
+    panel.appendChild(title)
+    panel.appendChild(message)
+    panel.appendChild(buttons)
+
+    overlay.appendChild(panel)
+    document.body.appendChild(overlay)
+  }
+
   const waitForImages = root => {
     const images = Array.from(root.querySelectorAll('img'))
 
@@ -29,6 +165,12 @@ export default function ArticleDownloadButton({ post }) {
 
   const handlePrint = async () => {
     if (typeof window === 'undefined') return
+
+    if (isWeChatBrowser()) {
+      showWeChatPdfGuide()
+      return
+    }
+
 
     const themeRoot = document.getElementById('theme-hexo')
     const sourceArticle = document.querySelector(
